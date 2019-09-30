@@ -5,7 +5,7 @@
 #include <ArduinoOTA.h>
 #include <soc/soc.h>
 #include <soc/rtc_cntl_reg.h>
-// #include <HardwareSerial.h>
+//#include <HardwareSerial.h>
 //#include <ESP32_Servo.h>
 
 //
@@ -20,8 +20,8 @@
 #define CAMERA_MODEL_AI_THINKER
 
 //Config Start
-const char *KNOWN_SSID[] = {"Belkin", "Mi Phone", "AndroidAP"};
-const char *KNOWN_PASSWORD[] = {"Fixui27d69!", "12345678", "7b95ad53f0c9"};
+// Get HOSTNAME, and list of KNOWN_SSID and  KNOWN_PASSWORD from credentials.h file
+#include "credentials.h"
 const int KNOWN_SSID_COUNT = sizeof(KNOWN_SSID) / sizeof(KNOWN_SSID[0]);
 #define RELAY_PIN 13 //Relay Pin for Printer Mains Relay
 //Config end
@@ -175,6 +175,10 @@ void setup()
   sensor_t *s = esp_camera_sensor_get();
   //s->set_framesize(s, FRAMESIZE_QVGA);
   s->set_framesize(s, FRAMESIZE_SVGA); //v12345vtm
+  //s->set_vflip(s, 1); // flip vertically
+  //s->set_brightness(s, 1); //+ve to increase, -ve to decrease
+  //s->set_saturation(s, -2); //+ve to increase, -ve to lower
+  //s->set_hmirror(s, 1); // mirror horizontally
 
   // ----------------------------------------------------------------
   // WiFi.scanNetworks will return the number of networks found
@@ -257,7 +261,7 @@ void setup()
   // ArduinoOTA.setPort(3232);
 
   // Hostname defaults to esp3232-[MAC]
-  ArduinoOTA.setHostname("PrintCamDev1");
+  ArduinoOTA.setHostname(HOSTNAME);
 
   // No authentication by default
   // ArduinoOTA.setPassword("admin");
@@ -303,12 +307,21 @@ void setup()
 
   startCameraServer();
 
+  if (!MDNS.begin(HOSTNAME)) {
+    Serial.println("Error setting up MDNS responder!");
+    while(1) {
+        delay(1000);
+    }
+  }
+  Serial.println("mDNS responder started");
+
   Serial.print("Camera Ready! Use 'http://");
   Serial.print(WiFi.localIP());
   Serial.println("' to connect");
   Serial.print("stream Ready! Use 'http://");
   Serial.print(WiFi.localIP());
   Serial.println(":9601/stream ");
+  MDNS.addService("http", "tcp", 80);
 }
 
 void loop()
